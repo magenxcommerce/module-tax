@@ -3,155 +3,124 @@
  * Copyright © Magento, Inc. All rights reserved.
  * See COPYING.txt for license details.
  */
-declare(strict_types=1);
 
 namespace Magento\Tax\Test\Unit\Model\Sales\Total\Quote;
 
+/**
+ * Test class for \Magento\Tax\Model\Sales\Total\Quote\Tax
+ */
 use Magento\Framework\TestFramework\Unit\Helper\ObjectManager;
-use Magento\Quote\Api\Data\ShippingAssignmentInterface;
-use Magento\Quote\Api\Data\ShippingInterface;
-use Magento\Quote\Model\Quote;
-use Magento\Quote\Model\Quote\Address as QuoteAddress;
-use Magento\Quote\Model\Quote\Address\Total as QuoteAddressTotal;
-use Magento\Quote\Model\Quote\Item as QuoteItem;
-use Magento\Store\Model\Store;
-use Magento\Tax\Api\Data\QuoteDetailsItemInterface;
-use Magento\Tax\Api\Data\QuoteDetailsItemInterfaceFactory;
-use Magento\Tax\Api\Data\TaxClassKeyInterface;
-use Magento\Tax\Api\Data\TaxClassKeyInterfaceFactory;
-use Magento\Tax\Api\Data\TaxDetailsItemInterface;
-use Magento\Tax\Helper\Data as TaxHelper;
-use Magento\Tax\Model\Config;
-use Magento\Tax\Model\Sales\Quote\ItemDetails;
-use Magento\Tax\Model\Sales\Total\Quote\CommonTaxCollector;
-use Magento\Tax\Model\TaxClass\Key as TaxClassKey;
-use PHPUnit\Framework\MockObject\MockObject;
-use PHPUnit\Framework\TestCase;
 
 /**
  * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
  */
-class CommonTaxCollectorTest extends TestCase
+class CommonTaxCollectorTest extends \PHPUnit\Framework\TestCase
 {
     /**
-     * @var CommonTaxCollector
+     * @var \Magento\Tax\Model\Sales\Total\Quote\CommonTaxCollector
      */
     private $commonTaxCollector;
 
     /**
-     * @var MockObject|Config
+     * @var \PHPUnit_Framework_MockObject_MockObject|\Magento\Tax\Model\Config
      */
     private $taxConfig;
 
     /**
-     * @var MockObject|QuoteAddress
+     * @var \PHPUnit_Framework_MockObject_MockObject|\Magento\Quote\Model\Quote\Address
      */
     private $address;
 
     /**
-     * @var MockObject|Quote
+     * @var \PHPUnit_Framework_MockObject_MockObject|\Magento\Quote\Model\Quote
      */
     private $quote;
 
     /**
-     * @var MockObject|Store
+     * @var \PHPUnit_Framework_MockObject_MockObject|\Magento\Store\Model\Store
      */
     private $store;
 
     /**
-     * @var MockObject
+     * @var \PHPUnit_Framework_MockObject_MockObject|
      */
     protected $taxClassKeyDataObjectFactoryMock;
 
     /**
-     * @var MockObject
+     * @var \PHPUnit_Framework_MockObject_MockObject|
      */
     protected $quoteDetailsItemDataObjectFactoryMock;
 
     /**
-     * @var QuoteDetailsItemInterface
+     * @var \Magento\Tax\Api\Data\QuoteDetailsItemInterface
      */
     protected $quoteDetailsItemDataObject;
 
     /**
-     * @var TaxClassKeyInterface
+     * @var \Magento\Tax\Api\Data\TaxClassKeyInterface
      */
     protected $taxClassKeyDataObject;
 
-    /**
-     * @var TaxHelper
-     */
-    private $taxHelper;
-
-    /**
-     * {@inheritdoc}
-     */
-    protected function setUp(): void
+    protected function setUp()
     {
         $objectManager = new ObjectManager($this);
 
-        $this->taxConfig = $this->getMockBuilder(Config::class)
+        $this->taxConfig = $this->getMockBuilder(\Magento\Tax\Model\Config::class)
             ->disableOriginalConstructor()
-            ->setMethods(['getShippingTaxClass', 'shippingPriceIncludesTax', 'discountTax'])
+            ->setMethods(['getShippingTaxClass', 'shippingPriceIncludesTax'])
             ->getMock();
 
-        $this->store = $this->getMockBuilder(Store::class)
+        $this->store = $this->getMockBuilder(\Magento\Store\Model\Store::class)
             ->disableOriginalConstructor()
             ->setMethods(['__wakeup'])
             ->getMock();
 
-        $this->quote = $this->getMockBuilder(Quote::class)
+        $this->quote = $this->getMockBuilder(\Magento\Quote\Model\Quote::class)
             ->disableOriginalConstructor()
             ->setMethods(['__wakeup', 'getStore'])
             ->getMock();
 
-        $this->quote
+        $this->quote->expects($this->any())
             ->method('getStore')
-            ->willReturn($this->store);
+            ->will($this->returnValue($this->store));
 
-        $this->address = $this->getMockBuilder(QuoteAddress::class)
+        $this->address = $this->getMockBuilder(\Magento\Quote\Model\Quote\Address::class)
             ->disableOriginalConstructor()
             ->getMock();
 
-        $this->address
+        $this->address->expects($this->any())
             ->method('getQuote')
-            ->willReturn($this->quote);
+            ->will($this->returnValue($this->quote));
         $methods = ['create'];
-        $this->quoteDetailsItemDataObject = $objectManager->getObject(ItemDetails::class);
-        $this->taxClassKeyDataObject = $objectManager->getObject(TaxClassKey::class);
+        $this->quoteDetailsItemDataObject = $objectManager->getObject(
+            \Magento\Tax\Model\Sales\Quote\ItemDetails::class
+        );
+        $this->taxClassKeyDataObject = $objectManager->getObject(\Magento\Tax\Model\TaxClass\Key::class);
         $this->quoteDetailsItemDataObjectFactoryMock
-            = $this->createPartialMock(QuoteDetailsItemInterfaceFactory::class, $methods);
-        $this->quoteDetailsItemDataObjectFactoryMock
+            = $this->createPartialMock(\Magento\Tax\Api\Data\QuoteDetailsItemInterfaceFactory::class, $methods);
+        $this->quoteDetailsItemDataObjectFactoryMock->expects($this->any())
             ->method('create')
             ->willReturn($this->quoteDetailsItemDataObject);
         $this->taxClassKeyDataObjectFactoryMock =
-            $this->createPartialMock(TaxClassKeyInterfaceFactory::class, $methods);
-        $this->taxClassKeyDataObjectFactoryMock
+            $this->createPartialMock(\Magento\Tax\Api\Data\TaxClassKeyInterfaceFactory::class, $methods);
+        $this->taxClassKeyDataObjectFactoryMock->expects($this->any())
             ->method('create')
             ->willReturn($this->taxClassKeyDataObject);
-        $this->taxHelper = $this->getMockBuilder(TaxHelper::class)
-            ->disableOriginalConstructor()
-            ->getMock();
         $this->commonTaxCollector = $objectManager->getObject(
-            CommonTaxCollector::class,
+            \Magento\Tax\Model\Sales\Total\Quote\CommonTaxCollector::class,
             [
                 'taxConfig' => $this->taxConfig,
                 'quoteDetailsItemDataObjectFactory' => $this->quoteDetailsItemDataObjectFactoryMock,
-                'taxClassKeyDataObjectFactory' => $this->taxClassKeyDataObjectFactoryMock,
-                'taxHelper' => $this->taxHelper,
+                'taxClassKeyDataObjectFactory' => $this->taxClassKeyDataObjectFactoryMock
             ]
         );
     }
 
     /**
-     * Test for GetShippingDataObject
-     *
      * @param array $addressData
      * @param bool $useBaseCurrency
      * @param string $shippingTaxClass
      * @param bool $shippingPriceInclTax
-     *
-     * @return void
      * @dataProvider getShippingDataObjectDataProvider
      */
     public function testGetShippingDataObject(
@@ -159,42 +128,36 @@ class CommonTaxCollectorTest extends TestCase
         $useBaseCurrency,
         $shippingTaxClass,
         $shippingPriceInclTax
-    ): void {
-        $shippingAssignmentMock = $this->getMockForAbstractClass(ShippingAssignmentInterface::class);
-        /** @var MockObject|QuoteAddressTotal $totalsMock */
-        $totalsMock = $this->getMockBuilder(QuoteAddressTotal::class)
-            ->addMethods(
-                [
-                    'getShippingDiscountAmount',
-                    'getShippingTaxCalculationAmount',
-                    'setShippingTaxCalculationAmount',
-                    'getShippingAmount',
-                    'setBaseShippingTaxCalculationAmount',
-                    'getBaseShippingAmount',
-                    'getBaseShippingDiscountAmount'
-                ]
-            )
-            ->disableOriginalConstructor()
-            ->getMock();
-        $shippingMock = $this->getMockForAbstractClass(ShippingInterface::class);
-        /** @var MockObject|ShippingAssignmentInterface $shippingAssignmentMock */
+    ) {
+        $shippingAssignmentMock = $this->createMock(\Magento\Quote\Api\Data\ShippingAssignmentInterface::class);
+        $methods = [
+            'getShippingDiscountAmount',
+            'getShippingTaxCalculationAmount',
+            'setShippingTaxCalculationAmount',
+            'getShippingAmount',
+            'setBaseShippingTaxCalculationAmount',
+            'getBaseShippingAmount',
+            'getBaseShippingDiscountAmount'
+        ];
+        $totalsMock = $this->createPartialMock(\Magento\Quote\Model\Quote\Address\Total::class, $methods);
+        $shippingMock = $this->createMock(\Magento\Quote\Api\Data\ShippingInterface::class);
         $shippingAssignmentMock->expects($this->once())->method('getShipping')->willReturn($shippingMock);
         $shippingMock->expects($this->once())->method('getAddress')->willReturn($this->address);
         $baseShippingAmount = $addressData['base_shipping_amount'];
         $shippingAmount = $addressData['shipping_amount'];
-        $totalsMock->method('getShippingTaxCalculationAmount')->willReturn($shippingAmount);
-        $this->taxConfig
+        $totalsMock->expects($this->any())->method('getShippingTaxCalculationAmount')->willReturn($shippingAmount);
+        $this->taxConfig->expects($this->any())
             ->method('getShippingTaxClass')
             ->with($this->store)
-            ->willReturn($shippingTaxClass);
-        $this->taxConfig
+            ->will($this->returnValue($shippingTaxClass));
+        $this->taxConfig->expects($this->any())
             ->method('shippingPriceIncludesTax')
             ->with($this->store)
-            ->willReturn($shippingPriceInclTax);
+            ->will($this->returnValue($shippingPriceInclTax));
         $totalsMock
-            ->expects($this->atLeastOnce())
-            ->method('getShippingDiscountAmount')
-            ->willReturn($shippingAmount);
+             ->expects($this->atLeastOnce())
+             ->method('getShippingDiscountAmount')
+             ->willReturn($shippingAmount);
         if ($shippingAmount) {
             if ($useBaseCurrency && $shippingAmount != 0) {
                 $totalsMock
@@ -221,60 +184,25 @@ class CommonTaxCollectorTest extends TestCase
     }
 
     /**
-     * Update item tax info
-     *
-     * @return void
-     */
-    public function testUpdateItemTaxInfo(): void
-    {
-        /** @var MockObject|QuoteItem $quoteItem */
-        $quoteItem = $this->getMockBuilder(QuoteItem::class)
-            ->disableOriginalConstructor()
-            ->setMethods(['getPrice', 'setPrice', 'getCustomPrice', 'setCustomPrice'])
-            ->getMock();
-        $this->taxHelper->method('applyTaxOnCustomPrice')->willReturn(true);
-        $quoteItem->method('getCustomPrice')->willReturn(true);
-        /** @var MockObject|TaxDetailsItemInterface $itemTaxDetails */
-        $itemTaxDetails = $this->getMockBuilder(TaxDetailsItemInterface::class)
-            ->disableOriginalConstructor()
-            ->getMockForAbstractClass();
-        /** @var MockObject|TaxDetailsItemInterface $baseItemTaxDetails */
-        $baseItemTaxDetails = $this->getMockBuilder(TaxDetailsItemInterface::class)
-            ->disableOriginalConstructor()
-            ->getMockForAbstractClass();
-
-        $quoteItem->expects($this->once())->method('setCustomPrice');
-
-        $this->commonTaxCollector->updateItemTaxInfo(
-            $quoteItem,
-            $itemTaxDetails,
-            $baseItemTaxDetails,
-            $this->store
-        );
-    }
-
-    /**
-     * Data for testGetShippingDataObject
-     *
      * @return array
      */
-    public function getShippingDataObjectDataProvider(): array
+    public function getShippingDataObjectDataProvider()
     {
         $data = [
             'free_shipping' => [
                 'address' => [
-                    'shipping_amount' => 0,
-                    'base_shipping_amount' => 0,
-                ],
+                        'shipping_amount' => 0,
+                        'base_shipping_amount' => 0,
+                    ],
                 'use_base_currency' => false,
                 'shipping_tax_class' => 'shippingTaxClass',
                 'shippingPriceInclTax' => true,
             ],
             'none_zero_none_base' => [
                 'address' => [
-                    'shipping_amount' => 10,
-                    'base_shipping_amount' => 5,
-                ],
+                        'shipping_amount' => 10,
+                        'base_shipping_amount' => 5,
+                    ],
                 'use_base_currency' => false,
                 'shipping_tax_class' => 'shippingTaxClass',
                 'shippingPriceInclTax' => true,
